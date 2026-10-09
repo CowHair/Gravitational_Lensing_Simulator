@@ -35,8 +35,6 @@ void store_ray(float b, std::vector<float>& path){
         vy += factor * y * dt;
 
         float v = sqrt(vx*vx + vy*vy);
-        vx /= v; // normalize velocity
-        vy /= v;
 
         x+= vx*dt;
         y+= vy*dt;
