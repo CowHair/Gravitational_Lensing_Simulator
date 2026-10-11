@@ -37,8 +37,36 @@ vec3 sky(vec3 d){
 
 }
 
-
 uniform vec3 uCamPos;
+uniform int uSky;
+uniform int uDisk;
+uniform int uRK4;
+
+float hash(vec2 p){
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+vec3 stars(vec3 d){
+    float lon = atan(d.x, -d.z);
+    float lat = asin(clamp(d.y, -1.0, 1.0));
+
+    float cells = 300.0;
+    vec2 g = vec2(lon, lat) * cells / (2.0 * PI);
+    vec2 id = floor(g);
+    vec2 f = fract(g);
+
+    vec2 starPos = 0.2 + 0.6 * vec2(hash(id), hash(id + 1.0));
+    float dist = length(f - starPos);
+    float brightness = 1.0 - smoothstep(0.0, 0.15, dist);
+
+    float has = step(0.8, hash(id+3.7));
+    brightness *= has;
+
+    float tint = hash(id + 7.0);
+    vec3 starColor = mix(vec3(0.7, 0.8, 1.0), vec3(1.0, 0.9, 0.7), tint);
+
+    return vec3(0.01, 0.01, 0.02) + starColor * brightness;
+}
 
 void main() {
     float fov = 1.0;
@@ -76,24 +104,18 @@ void main() {
         vel += acc * dt;
         pos += vel * dt;
     }
-    vec3 col = fellIn ? vec3(0.0) : sky(normalize(vel));
+
+    vec3 bg = (uSky == 1) ? stars(normalize(vel)) : sky(normalize(vel));
+    vec3 col = fellIn ? vec3(0.0) : bg;
     color = vec4(col, 1.0);
 }
 )";
 
 float yaw = 0.0f, pitch = 0.0f, dist = 15.0f;
 double lastX = 0.0, lastY = 0.0;
-
-void cursorCallback(GLFWwindow* window, double xpos, double ypos){
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){
-        yaw -= (float)(xpos - lastX) * 0.005f;
-        pitch += (float)(ypos - lastY) * 0.005f;
-        if (pitch > 1.5f) pitch = 1.5f;
-        if (pitch < -1.5f) pitch = -1.5f;
-    }
-    lastX = xpos;
-    lastY = ypos;
-}
+int skyMode = 0;
+bool diskOn = false;
+bool rk4On = false;
 
 GLuint compile(GLenum type, const char* src){
     GLuint s = glCreateShader(type);
@@ -110,10 +132,29 @@ GLuint compile(GLenum type, const char* src){
     return s;
 }
 
+void cursorCallback(GLFWwindow* window, double xpos, double ypos){
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){
+        yaw -= (float)(xpos - lastX) * 0.005f;
+        pitch += (float)(ypos - lastY) * 0.005f;
+        if (pitch > 1.5f) pitch = 1.5f;
+        if (pitch < -1.5f) pitch = -1.5f;
+    }
+    lastX = xpos;
+    lastY = ypos;
+}
+
 void scrollCallback(GLFWwindow* window, double xoff, double yoff){
     dist -= (float)yoff * 1.0f;
     if (dist < 2.0f) dist = 2.0f;
     if (dist > 35.0f) dist = 35.0f;
+}
+
+void keyCallback(GLFWwindow* window, int key, int sc, int action, int mods){
+    if (action != GLFW_PRESS) return;
+    if (key == GLFW_KEY_1) skyMode = 0;
+    if (key == GLFW_KEY_2) skyMode = 1;
+    if (key == GLFW_KEY_D) diskOn = !diskOn;
+    if (key == GLFW_KEY_R) rk4On = !rk4On;
 }
 
 int main(){
@@ -126,6 +167,7 @@ int main(){
     glfwMakeContextCurrent(window);
     glfwSetCursorPosCallback(window, cursorCallback);
     glfwSetScrollCallback(window, scrollCallback);
+    glfwSetKeyCallback(window, keyCallback);
     glfwSwapInterval(1);
     glewExperimental = GL_TRUE;
     glewInit();
@@ -145,6 +187,10 @@ int main(){
         glViewport(0, 0, w, h);
 
         glUseProgram(prog);
+
+        glUniform1i(glGetUniformLocation(prog, "uSky"), skyMode);
+        glUniform1i(glGetUniformLocation(prog, "uDisk"), diskOn ? 1:0);
+        glUniform1i(glGetUniformLocation(prog, "uRK4"), rk4On ? 1:0);
 
         float camX = dist * cos(pitch) * sin(yaw);
         float camY = dist * sin(pitch);
