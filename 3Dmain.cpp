@@ -109,6 +109,13 @@ GLuint compile(GLenum type, const char* src){
     }
     return s;
 }
+
+void scrollCallback(GLFWwindow* window, double xoff, double yoff){
+    dist -= (float)yoff * 1.0f;
+    if (dist < 2.0f) dist = 2.0f;
+    if (dist > 35.0f) dist = 35.0f;
+}
+
 int main(){
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -118,6 +125,7 @@ int main(){
     GLFWwindow* window = glfwCreateWindow(1200, 900, "Leninsg 3D", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSetCursorPosCallback(window, cursorCallback);
+    glfwSetScrollCallback(window, scrollCallback);
     glfwSwapInterval(1);
     glewExperimental = GL_TRUE;
     glewInit();
