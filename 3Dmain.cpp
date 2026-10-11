@@ -1,7 +1,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <cstdio>
-
+#include <cmath>
 const char* vertSrc = R"(
 #version 330 core
 const vec2 pos[6] = vec2[6](
@@ -81,6 +81,19 @@ void main() {
 }
 )";
 
+float yaw = 0.0f, pitch = 0.0f, dist = 15.0f;
+double lastX = 0.0, lastY = 0.0;
+
+void cursorCallback(GLFWwindow* window, double xpos, double ypos){
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){
+        yaw -= (float)(xpos - lastX) * 0.005f;
+        pitch += (float)(ypos - lastY) * 0.005f;
+        if (pitch > 1.5f) pitch = 1.5f;
+        if (pitch < -1.5f) pitch = -1.5f;
+    }
+    lastX = xpos;
+    lastY = ypos;
+}
 
 GLuint compile(GLenum type, const char* src){
     GLuint s = glCreateShader(type);
@@ -104,6 +117,7 @@ int main(){
 
     GLFWwindow* window = glfwCreateWindow(1200, 900, "Leninsg 3D", nullptr, nullptr);
     glfwMakeContextCurrent(window);
+    glfwSetCursorPosCallback(window, cursorCallback);
     glfwSwapInterval(1);
     glewExperimental = GL_TRUE;
     glewInit();
@@ -123,7 +137,11 @@ int main(){
         glViewport(0, 0, w, h);
 
         glUseProgram(prog);
-        glUniform3f(glGetUniformLocation(prog, "uCamPos"), 0.0f, 0.0f, 15.0f);
+
+        float camX = dist * cos(pitch) * sin(yaw);
+        float camY = dist * sin(pitch);
+        float camZ = dist * cos(pitch) * cos(yaw);
+        glUniform3f(glGetUniformLocation(prog, "uCamPos"), camX, camY, camZ);
         GLint loc = glGetUniformLocation(prog, "uResolution");
         glUniform2f(loc, (float)w, (float)h);
         glBindVertexArray(vao);
