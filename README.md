@@ -28,6 +28,8 @@ This project is written in C/C++ and OpenGL from scratch to simulate the behavio
 | `R` | Toggle RK4 integration (off = Euler) |
 | `Space` | Pause or resume the object's motion |
 
+![Black hole simulation](doc/DEMO_chessboardsky.png)
+
 ## Installation (Windows, MSYS2)
 
 1. Install [MSYS2](https://www.msys2.org) and open the MSYS2 UCRT64 terminal.
