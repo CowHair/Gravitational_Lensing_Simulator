@@ -41,6 +41,7 @@ uniform vec3 uCamPos;
 uniform int uSky;
 uniform int uDisk;
 uniform int uRK4;
+uniform int uObj;
 
 float hash(vec2 p){
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -91,6 +92,11 @@ void main() {
     vec3 c = cross(pos, vel);
     float h2 = dot(c, c);
 
+    vec3 objC = vec3(0.0, 0.0, -25.0);
+    float objR = 3.0;
+    bool objHit = false;
+    vec3 objCol = vec3(0.0);
+
     bool fellIn  = false;
     for (int i = 0; i < 800; i++){
         float r = length(pos);
@@ -121,13 +127,13 @@ void main() {
                 float angle = atan(hit.z, hit.x);
                 float streak = 0.75 + 0.25 * sin(angle*12.0 + rh*3.0);
 
-                float exposure = 1.5;
+                float exposure = 2.0;
                 vec3 hot = vec3(1.0,0.85,0.55);
                 vec3 cool = vec3(0.7, 0.15, 0.03);
                 float brightness = pow(1.0 - k, 2.0);
 
                 float beta = sqrt(rs/(2.0*rh));
-                vec3 gasDir = normalize(cross(up, hit));
+                vec3 gasDir = normalize(cross(vec3(0.0,1.0,0.0), hit));
                 vec3 lightDir = -normalize(vel);
 
                 float D = 1.0/(1.0 - beta*dot(gasDir, lightDir));
@@ -137,10 +143,17 @@ void main() {
                 break;
             }
         }
+        
+        if (uObj == 1 && length(pos - objC) < objR){
+            objHit = true;
+            float e = length(pos - objC) / objR;
+            objCol = 0.1 + 0.9 * pow(1.0 - e, 2.0) * vec3(0.5,0.7,1.0);
+            break;
+        } 
     }
 
     vec3 bg = (uSky == 1) ? stars(normalize(vel)) : sky(normalize(vel));
-    vec3 col = fellIn ? vec3(0.0) : (diskHit ? diskCol:bg);
+    vec3 col = fellIn ? vec3(0.0) : (diskHit ? diskCol:(objHit ? objCol : bg));
     color = vec4(col, 1.0);
 }
 )";
