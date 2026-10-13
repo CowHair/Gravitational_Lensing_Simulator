@@ -10,6 +10,7 @@ uniform int uSky;
 uniform int uDisk;
 uniform int uRK4;
 uniform int uObj;
+uniform float uTime;
 
 vec3 sky(vec3 d){
     float lon = atan(d.x, -d.z);
@@ -83,7 +84,7 @@ void main() {
     float h2 = dot(c, c);
 
     // vec3 objC = vec3(0.0, 0.0, -25.0);
-    vec3 objC = vec3(4.0, 0.0, -25.0);
+    vec3 objC = vec3(8.0*sin(uTime*3), 0.0, -25.0);
     float objR = 2.0;
     bool objHit = false;
     vec3 objCol = vec3(0.0);

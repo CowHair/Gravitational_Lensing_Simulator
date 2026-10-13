@@ -12,6 +12,9 @@ int skyMode = 1;
 bool diskOn = true;
 bool rk4On = false;
 bool objOn = true;
+bool paused = false;
+double simTime = 0.0;
+double lastFrame = 0.0;
 
 std::string loadshader(const char* path){
     std::ifstream f(path);
@@ -60,6 +63,7 @@ void keyCallback(GLFWwindow* window, int key, int sc, int action, int mods){
     if (key == GLFW_KEY_D) diskOn = !diskOn;
     if (key == GLFW_KEY_R) rk4On = !rk4On;
     if (key == GLFW_KEY_O) objOn = !objOn;
+    if (key == GLFW_KEY_SPACE) paused = !paused;
 }
 
 int main(){
@@ -99,6 +103,11 @@ int main(){
         glUniform1i(glGetUniformLocation(prog, "uDisk"), diskOn ? 1:0);
         glUniform1i(glGetUniformLocation(prog, "uRK4"), rk4On ? 1:0);
         glUniform1i(glGetUniformLocation(prog, "uObj"), objOn ? 1:0);
+
+        double now = glfwGetTime();
+        if(!paused) simTime += now - lastFrame;
+        lastFrame = now;
+        glUniform1f(glGetUniformLocation(prog, "uTime"), ((float)simTime));
 
         float camX = dist * cos(pitch) * sin(yaw);
         float camY = dist * sin(pitch);
