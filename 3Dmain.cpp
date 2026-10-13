@@ -69,6 +69,11 @@ vec3 stars(vec3 d){
     return vec3(0.01, 0.01, 0.02) + starColor * brightness;
 }
 
+vec3 accel(vec3 p, float h2){
+    float r = length(p);
+    return -1.5 * rs * h2/(r*r*r*r*r)*p;
+}
+
 void main() {
     float fov = 1.0;
     vec3 forward = normalize(-uCamPos);
@@ -109,12 +114,29 @@ void main() {
         if (r > 40.0 && dot(pos, vel) > 0.0){
             break;
         }
-        vec3 acc = -1.5 * rs * h2 / (r*r*r*r*r) * pos;
         float dt = 0.04 * r;
-
         vec3 oldPos = pos;
-        vel += acc * dt;
-        pos += vel * dt;
+
+        if (uRK4 == 1){
+            vec3 k1x = vel;
+            vec3 k1v = accel(pos, h2);
+
+            vec3 k2x = vel + k1v * dt *0.5;
+            vec3 k2v = accel(pos + k1x * dt * 0.5, h2);
+
+            vec3 k3x = vel + k2v * dt *0.5;
+            vec3 k3v = accel(pos + k2x * dt * 0.5, h2);
+
+            vec3 k4x = vel + k3v * dt;
+            vec3 k4v = accel(pos + k3x * dt, h2);
+
+            pos += (dt/6.0) * (k1x + 2.0*k2x + 2.0*k3x + k4x);
+            vel += (dt/6.0) * (k1v + 2.0*k2v + 2.0*k3v + k4v);
+        } else{
+            vec3 acc = accel(pos,h2);
+            vel += acc*dt;
+            pos += vel*dt;
+         }
 
         if (uDisk == 1 && oldPos.y * pos.y < 0.0){
             float s = oldPos.y/(oldPos.y - pos.y);
