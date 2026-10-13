@@ -1,6 +1,6 @@
 # Black Hole Gravitational Lensing Simulator
 
-![Black hole simulation](docs/DEMO.png)
+![Black hole simulation](doc/DEMO.png)
 
 This project is written in C/C++ and OpenGL from scratch to simulate the behavior of light around a black hole. Every pixel traces a ray of light backward from the camera, bending through the curved space, and shows what light would have hit: the sky, accretion disk, distant object, or event horizon.
 
