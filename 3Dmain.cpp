@@ -74,6 +74,9 @@ void main() {
     vec3 right = normalize(cross(forward,vec3(0.0, 1.0, 0.0)));
     vec3 up = cross(right, forward);
 
+    bool diskHit = false;
+    vec3 diskCol = vec3(0.0);
+
     vec2 uv = gl_FragCoord.xy / uResolution;
     vec2 p = uv * 2.0 - 1.0;
     float t = tan(fov/2.0);
@@ -101,21 +104,53 @@ void main() {
         }
         vec3 acc = -1.5 * rs * h2 / (r*r*r*r*r) * pos;
         float dt = 0.04 * r;
+
+        vec3 oldPos = pos;
         vel += acc * dt;
         pos += vel * dt;
+
+        if (uDisk == 1 && oldPos.y * pos.y < 0.0){
+            float s = oldPos.y/(oldPos.y - pos.y);
+            vec3 hit = mix(oldPos, pos, s);
+            float rh = length(hit);
+
+            if (rh < 8.0 * rs && rh > 3.0 * rs){
+                diskHit = true;
+                float k = (rh - (3*rs)) / (rs * 5.0);
+
+                float angle = atan(hit.z, hit.x);
+                float streak = 0.75 + 0.25 * sin(angle*12.0 + rh*3.0);
+
+                float exposure = 1.5;
+                vec3 hot = vec3(1.0,0.85,0.55);
+                vec3 cool = vec3(0.7, 0.15, 0.03);
+                float brightness = pow(1.0 - k, 2.0);
+
+                float beta = sqrt(rs/(2.0*rh));
+                vec3 gasDir = normalize(cross(up, hit));
+                vec3 lightDir = -normalize(vel);
+
+                float D = 1.0/(1.0 - beta*dot(gasDir, lightDir));
+                float beam = pow(D, 3.0);
+
+                diskCol = mix(hot, cool, k)*brightness*streak*beam*exposure;
+                break;
+            }
+        }
     }
 
     vec3 bg = (uSky == 1) ? stars(normalize(vel)) : sky(normalize(vel));
-    vec3 col = fellIn ? vec3(0.0) : bg;
+    vec3 col = fellIn ? vec3(0.0) : (diskHit ? diskCol:bg);
     color = vec4(col, 1.0);
 }
 )";
 
 float yaw = 0.0f, pitch = 0.0f, dist = 15.0f;
 double lastX = 0.0, lastY = 0.0;
-int skyMode = 0;
-bool diskOn = false;
+int skyMode = 1;
+bool diskOn = true;
 bool rk4On = false;
+bool objOn = true;
 
 GLuint compile(GLenum type, const char* src){
     GLuint s = glCreateShader(type);
@@ -151,10 +186,11 @@ void scrollCallback(GLFWwindow* window, double xoff, double yoff){
 
 void keyCallback(GLFWwindow* window, int key, int sc, int action, int mods){
     if (action != GLFW_PRESS) return;
-    if (key == GLFW_KEY_1) skyMode = 0;
-    if (key == GLFW_KEY_2) skyMode = 1;
+    if (key == GLFW_KEY_1) skyMode = 1;
+    if (key == GLFW_KEY_2) skyMode = 0;
     if (key == GLFW_KEY_D) diskOn = !diskOn;
     if (key == GLFW_KEY_R) rk4On = !rk4On;
+    if (key == GLFW_KEY_O) objOn = !objOn;
 }
 
 int main(){
@@ -177,7 +213,6 @@ int main(){
     glAttachShader(prog, compile(GL_FRAGMENT_SHADER, fragSrc));
     glLinkProgram(prog);
 
-    
     GLuint vao;
     glGenVertexArrays(1, &vao);
 
@@ -191,6 +226,7 @@ int main(){
         glUniform1i(glGetUniformLocation(prog, "uSky"), skyMode);
         glUniform1i(glGetUniformLocation(prog, "uDisk"), diskOn ? 1:0);
         glUniform1i(glGetUniformLocation(prog, "uRK4"), rk4On ? 1:0);
+        glUniform1i(glGetUniformLocation(prog, "uObj"), objOn ? 1:0);
 
         float camX = dist * cos(pitch) * sin(yaw);
         float camY = dist * sin(pitch);
