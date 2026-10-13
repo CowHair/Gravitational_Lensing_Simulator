@@ -92,8 +92,9 @@ void main() {
     vec3 c = cross(pos, vel);
     float h2 = dot(c, c);
 
-    vec3 objC = vec3(0.0, 0.0, -25.0);
-    float objR = 3.0;
+    // vec3 objC = vec3(0.0, 0.0, -25.0);
+    vec3 objC = vec3(4.0, 0.0, -25.0);
+    float objR = 2.0;
     bool objHit = false;
     vec3 objCol = vec3(0.0);
 
@@ -146,8 +147,16 @@ void main() {
         
         if (uObj == 1 && length(pos - objC) < objR){
             objHit = true;
-            float e = length(pos - objC) / objR;
-            objCol = 0.1 + 0.9 * pow(1.0 - e, 2.0) * vec3(0.5,0.7,1.0);
+            vec3 n = normalize(pos - objC);
+            float facing = dot(n, -normalize(vel));
+
+            vec3 core = vec3(0.9, 0.95, 1.0);
+            vec3 rim = vec3(0.25, 0.45, 1.0);
+            objCol = mix(rim, core, pow(facing, 2.0)) * 1.0;
+
+            float knots = 0.7 + 0.5 * hash(floor(n.xy*3.0));
+            objCol *= knots;
+            
             break;
         } 
     }
